@@ -10,7 +10,8 @@ read -p "" -n 1 -s
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
   branch_name=$(git rev-parse --abbrev-ref HEAD)
-  patch_file_name=patch_${branch_name};
+  branch_name_sanitized=$(echo $branch_name | sed -e 's/\//_/g')
+  patch_file_name=patch_${branch_name_sanitized};
   patch_file_name_path=${patch_file_name}.patch
   patch_file_name_zip=${patch_file_name}.zip
   git diff -p --staged > ${PATCH_DIRECTORY_NAME}${patch_file_name_path}
