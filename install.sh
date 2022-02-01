@@ -25,6 +25,12 @@ function install_oh_my_zsh_plugins {
   printf 'eval "$(starship init zsh)"' >> ~/.zshrc
 }
 
+function install_custom_aliases_git {
+  printf "\n# Custom Git aliases\n" >> ~/.zshrc
+  printf 'alias gpp="git pull\n"' >> ~/.zshrc
+  printf 'alias gpr="git pull --rebase\n"' >> ~/.zshrc
+}
+
 function install_custom_go_path {
   printf "\n# Custom Gopath\n" >> ~/.zshrc
   printf 'export GOPATH=~/.go' >> ~/.zshrc
@@ -32,4 +38,5 @@ function install_custom_go_path {
 
 install_git_config
 install_oh_my_zsh_plugins
+install_custom_aliases_git
 install_custom_go_path
