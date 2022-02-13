@@ -4,14 +4,24 @@ current_directory=$(pwd)
 
 function install_git_config {
   # Install gitscripts
-  DIRECTORY_GIT_SCRIPTS='gitscripts'
-  git config --global alias.patch "!sh $current_directory/$DIRECTORY_GIT_SCRIPTS/patch.sh"
-  git config --global alias.shake "!sh $current_directory/$DIRECTORY_GIT_SCRIPTS/shake.sh"
-  git config --global alias.pushup "!sh $current_directory/$DIRECTORY_GIT_SCRIPTS/pushup.sh"
-  git config --global alias.rebaso "!sh $current_directory/$DIRECTORY_GIT_SCRIPTS/rebaso.sh"
+  DIRECTORY_GIT='git'
+  DIRECTORY_GIT_SCRIPTS='git-scripts'
+  git config --global alias.patch "!sh $current_directory/$DIRECTORY_GIT/$DIRECTORY_GIT_SCRIPTS/patch.sh"
+  git config --global alias.shake "!sh $current_directory/$DIRECTORY_GIT/$DIRECTORY_GIT_SCRIPTS/shake.sh"
+  git config --global alias.pushup "!sh $current_directory/$DIRECTORY_GIT/$DIRECTORY_GIT_SCRIPTS/pushup.sh"
+  git config --global alias.rebaso "!sh $current_directory/$DIRECTORY_GIT/$DIRECTORY_GIT_SCRIPTS/rebaso.sh"
 
   # Set the commit editor to VS Code
   git config --global core.editor "code --wait"
+
+  # Set our directory for templates and hooks
+  git config --global init.templatedir '~/.git_templates'
+
+  # Copy the prepare-commit-msg to the global config
+  cp $current_directory/$DIRECTORY_GIT/prepare-commit-msg ~/.git_templates/hooks/
+
+  # Set our commit template
+  git config --global commit.template $current_directory/$DIRECTORY_GIT/gitmessage
 }
 
 function install_oh_my_zsh_plugins {

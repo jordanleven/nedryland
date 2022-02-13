@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# A script to automatically copy the ticket number from a branch
+# into the footer of the commit message.
+
+commit_message_file=$1
+commit_message_template=$(git config --get commit.template)
+commit_message_template_contents=$(<$commit_message_template)
+
+function add_to_commit_message_body {
+  file_contents_exist=$(<$commit_message_file)
+  echo "$1" >> $commit_message_file;
+}
+
+echo "" > $commit_message_file;
+add_to_commit_message_body ""
+add_to_commit_message_body "# TYPE: SUBJECT"
+add_to_commit_message_body "# Body Headline"
+add_to_commit_message_body "# - Body explanation."
+add_to_commit_message_body ""
+
+branch_name=$(git rev-parse --abbrev-ref HEAD)
+ticket_number=$(echo $branch_name | sed 's/--.*//' | tr [a-z] [A-Z])
+
+# If our ticket number is valid and matches our regex, then include it in
+# our commit footer.
+#
+# For now, we consider a ticket to be vaid if we have any number of letters
+# followed by a single hyphen, followed by an number of integers.
+if [[ $ticket_number =~ ^[a-zA-Z]*-[0-9]*$ ]]
+then
+  add_to_commit_message_body "${ticket_number}"
+  add_to_commit_message_body ""
+fi
+
+add_to_commit_message_body "$commit_message_template_contents"
