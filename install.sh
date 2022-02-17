@@ -46,7 +46,15 @@ function install_custom_go_path {
   printf 'export GOPATH=~/.go' >> ~/.zshrc
 }
 
+function welcome_to_nedryland {
+  nedryland_ascii_art=$(<./assets/nedryland.txt)
+  echo -e "\n\033[1;32mWelcome to Nedryland!\033[0m"
+  echo -e "$nedryland_ascii_art"
+}
+
+
 install_git_config
 install_oh_my_zsh_plugins
 install_custom_aliases_git
 install_custom_go_path
+welcome_to_nedryland
