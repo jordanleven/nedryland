@@ -4,6 +4,7 @@
 # into the footer of the commit message.
 
 commit_message_file=$1
+commit_source=$2
 commit_message_template=$(git config --get commit.template)
 commit_message_template_contents=$(<$commit_message_template)
 
@@ -12,25 +13,22 @@ function add_to_commit_message_body {
   echo "$1" >> $commit_message_file;
 }
 
-echo "" > $commit_message_file;
-add_to_commit_message_body ""
-add_to_commit_message_body "# TYPE: SUBJECT"
-add_to_commit_message_body "# Body Headline"
-add_to_commit_message_body "# - Body explanation."
-add_to_commit_message_body ""
-
-branch_name=$(git rev-parse --abbrev-ref HEAD)
-ticket_number=$(echo $branch_name | cut -f1,2 -d'-' | tr [a-z] [A-Z])
-
-# If our ticket number is valid and matches our regex, then include it in
-# our commit footer.
-#
-# For now, we consider a ticket to be vaid if we have any number of letters
-# followed by a single hyphen, followed by an number of integers.
-if [[ $ticket_number =~ ^[a-zA-Z]*-[0-9]*$ ]]
+if [[ $commit_source = "template" ]]
 then
-  add_to_commit_message_body "${ticket_number}"
-  add_to_commit_message_body ""
-fi
+  echo "" > $commit_message_file;
 
-add_to_commit_message_body "$commit_message_template_contents"
+  add_to_commit_message_body "$commit_message_template_contents"
+
+  branch_name=$(git rev-parse --abbrev-ref HEAD)
+  ticket_number=$(echo $branch_name | cut -f1,2 -d'-' | tr [a-z] [A-Z])
+
+  # If our ticket number is valid and matches our regex, then include it in
+  # our commit footer.
+  #
+  # For now, we consider a ticket to be vaid if we have any number of letters
+  # followed by a single hyphen, followed by an number of integers.
+  if [[ $ticket_number =~ ^[a-zA-Z]*-[0-9]*$ ]]
+  then
+    add_to_commit_message_body "${ticket_number}"
+  fi
+fi
