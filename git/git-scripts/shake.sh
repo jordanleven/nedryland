@@ -1,7 +1,6 @@
-#!/bin/bash
+#!/bin/zsh
 
-source ${BASH_SOURCE%/*}/production-branch.sh
-source ${BASH_SOURCE%/*}/get-branch.sh
+source $(dirname "$0")/get-branch.sh
 
 branch_target=$(get_branch $1)
 git checkout $branch_target

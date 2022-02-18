@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/zsh
 
-source ${BASH_SOURCE%/*}/production-branch.sh
+source ~/.zshrc
 
 function get_branch {
   if [ -n "$1" ]; then
