@@ -27,7 +27,7 @@ then
   #
   # For now, we consider a ticket to be vaid if we have any number of letters
   # followed by a single hyphen, followed by an number of integers.
-  if [[ $ticket_number =~ ^[a-zA-Z]*-[0-9]*$ ]]
+  if [[ $ticket_number =~ ^[A-Za-z]+-[0-9]+$ ]]
   then
     add_to_commit_message_body "${ticket_number}"
   fi
