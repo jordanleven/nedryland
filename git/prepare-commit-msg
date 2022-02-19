@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 # A script to automatically copy the ticket number from a branch
 # into the footer of the commit message.

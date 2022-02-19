@@ -44,6 +44,7 @@ function install_oh_my_zsh_plugins {
   sh -c "$(curl -fsSL https://starship.rs/install.sh)"
 
   printf "\n# Starship\n" >> ~/.zshrc
+  printf "export STARSHIP_CONFIG=$current_directory/zshell/starship.config.toml\n" >> ~/.zshrc
   printf 'eval "$(starship init zsh)"' >> ~/.zshrc
 }
 
@@ -55,6 +56,10 @@ function install_custom_aliases {
 function install_custom_go_path {
   printf "\n# Custom Gopath\n" >> ~/.zshrc
   printf 'export GOPATH=~/.go' >> ~/.zshrc
+}
+
+function install_gh_cli {
+  brew install gh
 }
 
 function prompt_user_for_update {
@@ -76,6 +81,7 @@ function nedryland_init {
   install_oh_my_zsh_plugins
   install_custom_aliases
   install_custom_go_path
+  install_gh_cli
 }
 
 function nedryland_update {

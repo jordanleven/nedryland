@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 PATCH_DIRECTORY_NAME=~/Desktop/
 

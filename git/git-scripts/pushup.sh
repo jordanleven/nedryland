@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 remote_repo=origin
 branch_current=$(git rev-parse --abbrev-ref HEAD)
