@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-source "$(dirname "$0")/zshell.nedryland.sh"
+. "$(dirname "$0")/zshell.nedryland.zsh"
 
 alias nedryland="welcome_to_nedryland"
 

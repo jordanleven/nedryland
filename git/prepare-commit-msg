@@ -10,12 +10,12 @@ commit_message_template_contents=$(<$commit_message_template)
 
 function add_to_commit_message_body {
   file_contents_exist=$(<$commit_message_file)
-  echo "$1" >> $commit_message_file;
+  echo "$1" >> $commit_message_file
 }
 
 if [[ $commit_source = "template" ]]
 then
-  echo "" > $commit_message_file;
+  echo "" > $commit_message_file
 
   add_to_commit_message_body "$commit_message_template_contents"
 
