@@ -1,11 +1,12 @@
 #!/bin/zsh
 
+. ~/.zshrc
 . "$(dirname "$0")/zshell/zshell.nedryland.zsh"
 
 install_current_directory=$(pwd)
 
 command_does_exist() {
-  if command -v "$1" > /dev/null
+  if type "$1" &> /dev/null
   then
     return 0
   else
@@ -105,15 +106,22 @@ install_gh_cli() {
 
 prompt_user_for_update() {
   prompt=$1
-  function=$2
-  printf "\n\x1b[1;38;32;97;188;101mUpdate %s? \x1b[38;2;97;188;101m[y/n]\033[0m" "$prompt"
-  read -r "" -n 1 -s
-  if echo "$REPLY" | grep -q "^[Yy]$"
-  then
-    $function
-  else
-    printf "\x1b[3;38;32;97;188;101mSkipping %s update...\033[0m" "$prompt"
-  fi
+  while true
+  do
+    printf "\n\x1b[1;38;32;97;188;101mUpdate %s? \x1b[38;2;97;188;101m[y/n] \033[0m" "$prompt"
+    read reply
+    case $reply in
+        [Yy]* )
+          return 0
+        break;;
+        [Nn]* )
+          printf "\x1b[3;38;32;97;188;101mSkipping %s update...\n\033[0m" "$prompt"
+          return 1
+          break;;
+        * )
+        printf "\n\x1b[1;38;2;255;63;63mPlease response with \"y\" or \"n\"\n\033[0m"
+    esac
+  done
 }
 
 nedryland_init() {
@@ -126,8 +134,8 @@ nedryland_init() {
 }
 
 nedryland_update() {
-  prompt_user_for_update "git config" install_git_config
-  prompt_user_for_update "git hooks" install_git_hooks
+  prompt_user_for_update "git config" && install_git_config
+  prompt_user_for_update "git hooks" && install_git_hooks
 }
 
 # Check if we need to do an initial install of Nedryland
@@ -135,6 +143,6 @@ if ! command_does_exist nedryland
 then
   nedryland_init
 else
-  printf "\n\x1b[1;38;2;255;63;63mNedryland has already been installed. Running updates...\033[0m"
+  printf "\n\x1b[1;38;2;255;63;63mNedryland has already been installed. Running updates...\n\033[0m"
   nedryland_update
 fi
