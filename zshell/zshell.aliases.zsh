@@ -5,5 +5,5 @@
 alias nedryland="welcome_to_nedryland"
 
 alias gpp="git pull"
-alias gpr="git pull --rebase"
+alias gppr="git pull --rebase"
 alias gfu="git commit --fixup=HEAD~0"
