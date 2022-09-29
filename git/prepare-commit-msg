@@ -19,14 +19,14 @@ then
   add_to_commit_message_body "$commit_message_template_contents"
 
   branch_name=$(git rev-parse --abbrev-ref HEAD)
-  ticket_number=$(echo "$branch_name" | cut -f1,2 -d'-' | tr '[:lower:]' '[:upper:]' | grep -E '^[A-Za-z]+-[0-9]+$')
+  ticket_number=$(echo "$branch_name" | cut -f1,2 -d'-' | tr '[:lower:]' '[:upper:]')
 
   # If our ticket number is valid and matches our regex, then include it in
   # our commit footer.
   #
   # For now, we consider a ticket to be valid if we have any number of letters
   # followed by a single hyphen, followed by an number of integers.
-  ticket_number_validated=$(echo "$ticket_number" | grep -E '^[A-Za-z]+-[0-9]+$')
+  ticket_number_validated=$(echo "$ticket_number" | grep -E '^[A-Za-z0-9]+-[0-9]+$')
 
   if [ "$ticket_number_validated" != "" ]
   then
