@@ -11,4 +11,8 @@ alias gpp="git pull"
 alias gppr="git pull --rebase"
 alias gfu="git commit --fixup=HEAD~0"
 alias toggleheat="shortcuts run 'Space Heater'"
-alias brightness="shortcuts run 'Set Brightness'"
+
+function brightness() {
+  # Default to 50%
+  shortcuts run 'Set Brightness' <<< ${1-50}
+}
