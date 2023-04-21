@@ -3,7 +3,8 @@
 . "$(dirname "$0")/zshell.nedryland.zsh"
 . "$(dirname "$0")/zshell.temp-directory.zsh"
 
-alias nedryland="welcome_to_nedryland"
+alias nedryland="nedryland_message_show_large"
+alias nedryland_loaded="nedryland_message_show_small"
 alias tempdir="nedryland_create_temp_directory"
 alias persistdir="nedryland_persist_temp_directory"
 

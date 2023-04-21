@@ -6,7 +6,7 @@ branch_target=$(get_branch $1)
 git checkout "$branch_target"
 
 branch_current=$(current_branch)
-if [ "$(current_branch)" = "$branch_target" ]
+if [ "$branch_current" = "$branch_target" ]
 then
   git fetch --all
   git pull

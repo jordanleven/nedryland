@@ -28,10 +28,10 @@ install_git_config() {
   # Install gitscripts
   directory_git='git'
   directory_git_scripts='git-scripts'
-  git config --global alias.patch "!zsh $install_current_directory/$directory_git/$directory_git_scripts/patch.zsh"
-  git config --global alias.shake "!zsh $install_current_directory/$directory_git/$directory_git_scripts/shake.zsh"
-  git config --global alias.pushup "!zsh $install_current_directory/$directory_git/$directory_git_scripts/pushup.zsh"
-  git config --global alias.rebaso "!zsh $install_current_directory/$directory_git/$directory_git_scripts/rebaso.zsh"
+  git config --global alias.patch "!sh $install_current_directory/$directory_git/$directory_git_scripts/patch.sh"
+  git config --global alias.shake "!sh $install_current_directory/$directory_git/$directory_git_scripts/shake.sh"
+  git config --global alias.pushup "!sh $install_current_directory/$directory_git/$directory_git_scripts/pushup.sh"
+  git config --global alias.rebaso "!sh $install_current_directory/$directory_git/$directory_git_scripts/rebaso.sh"
 
   # Set the commit editor to VS Code
   git config --global core.editor "code --wait"
@@ -41,6 +41,9 @@ install_git_config() {
 
   # Set our commit template
   git config --global commit.template "$install_current_directory/$directory_git"/gitmessage
+
+  # For pulling divergent branches
+  git config --global pull.rebase true
 }
 
 install_git_hooks() {
@@ -97,6 +100,16 @@ install_custom_go_path() {
   fi
 }
 
+install_nedryland_greeting() {
+  if ! zsh_config_does_exist "# Nedryland Greeting"
+  then
+  {
+    printf "\n# Nedryland Greeting\n"
+    nedryland_loaded
+  } >> ~/.zshrc
+  fi
+}
+
 install_gh_cli() {
   if ! command_does_exist gh
   then
@@ -112,12 +125,10 @@ prompt_user_for_update() {
     read reply
     case $reply in
         [Yy]* )
-          return 0
-        break;;
+          return 0;;
         [Nn]* )
           printf "\x1b[3;38;32;97;188;101mSkipping %s update...\n\033[0m" "$prompt"
-          return 1
-          break;;
+          return 1;;
         * )
         printf "\n\x1b[1;38;2;255;63;63mPlease response with \"y\" or \"n\"\n\033[0m"
     esac
@@ -130,6 +141,7 @@ nedryland_init() {
   install_oh_my_zsh_plugins
   install_custom_aliases
   install_custom_go_path
+  install_nedryland_greeting
   install_gh_cli
 }
 
