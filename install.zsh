@@ -114,6 +114,7 @@ install_gh_cli() {
   if ! command_does_exist gh
   then
     brew install gh
+    gh config set editor "$install_current_directory/$directory_git/$directory_git_scripts/editor-from-foreground-app.sh"
   fi
 }
 
