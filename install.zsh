@@ -33,8 +33,8 @@ install_git_config() {
   git config --global alias.pushup "!sh $install_current_directory/$directory_git/$directory_git_scripts/pushup.sh"
   git config --global alias.rebaso "!sh $install_current_directory/$directory_git/$directory_git_scripts/rebaso.sh"
 
-  # Set the commit editor to VS Code
-  git config --global core.editor "code --wait"
+  # Set the commit editor to the foreground app
+  git config --global core.editor "$install_current_directory/$directory_git/$directory_git_scripts/editor-from-foreground-app.sh"
 
   # Set our directory for templates and hooks
   git config --global init.templatedir "$HOME/.git_templates"
