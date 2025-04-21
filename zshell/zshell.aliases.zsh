@@ -7,6 +7,7 @@ alias nedryland="nedryland_message_show_large"
 alias nedryland_loaded="nedryland_message_show_small"
 alias tempdir="nedryland_create_temp_directory"
 alias persistdir="nedryland_persist_temp_directory"
+alias vsc="code . && exit"
 
 alias gpp="git pull"
 alias gppr="git pull --rebase"
