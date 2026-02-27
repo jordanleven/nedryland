@@ -111,13 +111,53 @@ install_nedryland_greeting() {
 }
 
 install_claude_skills() {
-  claude_skills_source="$install_current_directory/claude-skills"
+  shared_skills_source="$install_current_directory/skills"
   claude_skills_target="$HOME/.claude/skills"
+
   mkdir -p "$HOME/.claude"
-  if [ ! -L "$claude_skills_target" ]
+
+  if [ ! -e "$claude_skills_target" ]
   then
-    ln -s "$claude_skills_source" "$claude_skills_target"
+    ln -s "$shared_skills_source" "$claude_skills_target"
   fi
+}
+
+sync_codex_skill_links() {
+  shared_skills_source="$install_current_directory/skills"
+  codex_skills_target="$HOME/.codex/skills"
+
+  mkdir -p "$codex_skills_target"
+
+  for skill_path in "$shared_skills_source"/*
+  do
+    if [ -d "$skill_path" ]
+    then
+      skill_name=$(basename "$skill_path")
+      codex_skill_link="$codex_skills_target/$skill_name"
+      if [ ! -e "$codex_skill_link" ]
+      then
+        ln -s "$skill_path" "$codex_skill_link"
+      fi
+    fi
+  done
+
+  for codex_skill_link in "$codex_skills_target"/*
+  do
+    if [ -L "$codex_skill_link" ]
+    then
+      linked_skill_path=$(readlink "$codex_skill_link")
+      expected_skill_path="$shared_skills_source/$(basename "$codex_skill_link")"
+      if [ "$linked_skill_path" = "$expected_skill_path" ] && [ ! -d "$expected_skill_path" ]
+      then
+        rm "$codex_skill_link"
+      fi
+    fi
+  done
+}
+
+install_shared_skills() {
+  install_claude_skills
+  sync_codex_skill_links
 }
 
 install_gh_cli() {
@@ -154,13 +194,14 @@ nedryland_init() {
   install_custom_go_path
   install_nedryland_greeting
   install_gh_cli
-  install_claude_skills
+  install_shared_skills
 }
 
 nedryland_update() {
   prompt_user_for_update "git config" && install_git_config
   prompt_user_for_update "git hooks" && install_git_hooks
-  prompt_user_for_update "Claude skills" && install_claude_skills
+  prompt_user_for_update "Claude shared skills" && install_claude_skills
+  prompt_user_for_update "Codex skill symlinks" && sync_codex_skill_links
 }
 
 # Check if we need to do an initial install of Nedryland

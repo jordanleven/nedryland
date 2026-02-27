@@ -16,13 +16,18 @@ type: Subject line (50 chars or less)
 ```
 
 - **Types:** `feat`, `fix`, `chore`, `style`, `refactor`, `test`
+- **CI/build changes use `chore`** — `ci` is not a valid type; workflow, pipeline, and build config changes should use `chore`
+- **`fix:` is strictly for application code bugs** — test infrastructure, CI, and tooling changes use `chore:` even if they "fix" something; commit subjects drive semantic versioning, so a `fix:` on a test retry loop would incorrectly bump the patch version
 - **No scopes** — never use `type(scope):` format
 - **Sentence case** — capitalize the first word only
 - **Imperative mood** — "Add", "Fix", "Update", not "Added", "Fixes", "Updated"
-- **No trailing period**
+- **No trailing period on the subject line**
+- **Body lines must be complete sentences ending with a period**
 - Use **backticks** for specific file or script names (e.g., `fix: Update \`prepare-commit-msg\` hook`)
 - **Subject line must be 50 characters or less** — GitHub truncates beyond this
 - **Body lines must be 72 characters or less** — if a point needs more, wrap it onto the next line, but only the first line of each point gets a hyphen prefix
+- **Every body line must start with a bullet (`-`)** — no bare prose paragraphs
+- **Don't split one idea into multiple bullets** — if two points are part of the same cause-and-effect or tell one continuous story, combine them into a single bullet
 
 ## Commit body
 
