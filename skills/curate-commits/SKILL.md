@@ -100,8 +100,10 @@ Use the Conventional Commits format:
 
 - **Types:** `feat`, `fix`, `refactor`, `chore`, `docs`, `style`, `test`
 - **No scopes** — never use `type(scope):` format (e.g. `chore(deps):` is wrong; use `chore:`)
-- **Subject:** imperative mood, sentence case, no trailing period
+- **Subject:** imperative mood, sentence case, no trailing period, **50 characters or less** (count them)
+- **Body lines:** 72 characters or less
 - **Body:** the *why* and the *context* — what would be valuable to know when reading this commit 6 months from now? What problem does this solve? What was the reasoning behind this approach?
+- **`fix:` vs `chore:`** — use `fix:` only for bugs in application behavior. Use `chore:` for anything in the build, tooling, or transpilation pipeline — even if it resolves a warning or error. Suppressing a Sass deprecation warning is `chore:`, not `fix:`.
 
 ### 7. Push the rewritten history
 
