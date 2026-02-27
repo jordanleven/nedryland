@@ -110,6 +110,16 @@ install_nedryland_greeting() {
   fi
 }
 
+install_claude_skills() {
+  claude_skills_source="$install_current_directory/claude-skills"
+  claude_skills_target="$HOME/.claude/skills"
+  mkdir -p "$HOME/.claude"
+  if [ ! -L "$claude_skills_target" ]
+  then
+    ln -s "$claude_skills_source" "$claude_skills_target"
+  fi
+}
+
 install_gh_cli() {
   if ! command_does_exist gh
   then
@@ -144,11 +154,13 @@ nedryland_init() {
   install_custom_go_path
   install_nedryland_greeting
   install_gh_cli
+  install_claude_skills
 }
 
 nedryland_update() {
   prompt_user_for_update "git config" && install_git_config
   prompt_user_for_update "git hooks" && install_git_hooks
+  prompt_user_for_update "Claude skills" && install_claude_skills
 }
 
 # Check if we need to do an initial install of Nedryland
