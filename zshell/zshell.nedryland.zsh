@@ -330,6 +330,10 @@ nedryland_new_window_show() {
 }
 
 nedryland_loaded_show() {
+  if [[ "${NEDRYLAND_SKIP_STARTUP_GREETING:-0}" = "1" ]]
+  then
+    return
+  fi
   nedryland_new_window_show
 }
 
@@ -345,5 +349,21 @@ nedryland_reload_show() {
 }
 
 nedryland_show_manual() {
+  nedryland_reload_show
+}
+
+nedryland_resource_and_reload_show() {
+  local previous_skip_startup="${NEDRYLAND_SKIP_STARTUP_GREETING:-0}"
+
+  export NEDRYLAND_SKIP_STARTUP_GREETING=1
+  source ~/.zshrc
+
+  if [[ "$previous_skip_startup" = "1" ]]
+  then
+    export NEDRYLAND_SKIP_STARTUP_GREETING=1
+  else
+    unset NEDRYLAND_SKIP_STARTUP_GREETING
+  fi
+
   nedryland_reload_show
 }
