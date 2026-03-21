@@ -82,6 +82,89 @@ nedryland_message_show_auto() {
   nedryland_message_show "$(nedryland_message_asset_auto)"
 }
 
+nedryland_find_upwards() {
+  local target_name="$1"
+  local search_directory="${2:-$PWD}"
+
+  while [[ -n "$search_directory" && "$search_directory" != "/" ]]
+  do
+    if [[ -e "$search_directory/$target_name" ]]
+    then
+      printf "%s\n" "$search_directory/$target_name"
+      return 0
+    fi
+
+    search_directory="${search_directory:h}"
+  done
+
+  if [[ -e "/$target_name" ]]
+  then
+    printf "%s\n" "/$target_name"
+    return 0
+  fi
+
+  return 1
+}
+
+nedryland_nvm_load() {
+  if (( $+functions[nvm] ))
+  then
+    return 0
+  fi
+
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  if [[ ! -s "$NVM_DIR/nvm.sh" ]]
+  then
+    return 1
+  fi
+
+  # Load nvm without changing versions until we've confirmed a project .nvmrc exists.
+  . "$NVM_DIR/nvm.sh" --no-use >/dev/null 2>&1
+  (( $+functions[nvm] ))
+}
+
+nedryland_auto_use_project_node_version() {
+  local package_json_path
+  local nvmrc_path
+  local package_directory
+  local nvmrc_directory
+
+  [[ -o interactive ]] || return 1
+
+  if ! package_json_path="$(nedryland_find_upwards "package.json")"
+  then
+    return 1
+  fi
+
+  if ! nvmrc_path="$(nedryland_find_upwards ".nvmrc")"
+  then
+    return 1
+  fi
+
+  package_directory="${package_json_path:h}"
+  nvmrc_directory="${nvmrc_path:h}"
+
+  case "$package_directory/" in
+    "$nvmrc_directory/"* ) ;;
+    * ) return 1;;
+  esac
+
+  nedryland_nvm_load || return 1
+
+  if [[ "${NEDRYLAND_LAST_NVMRC:-}" = "$nvmrc_path" ]]
+  then
+    return 0
+  fi
+
+  if nvm use --silent >/dev/null 2>&1
+  then
+    typeset -g NEDRYLAND_LAST_NVMRC="$nvmrc_path"
+    return 0
+  fi
+
+  return 1
+}
+
 nedryland_random_pick_messages() {
   local pick_count="${1:-3}"
   local pool_text="$2"
@@ -334,6 +417,8 @@ nedryland_loaded_show() {
   then
     return
   fi
+
+  nedryland_auto_use_project_node_version
   nedryland_new_window_show
 }
 
@@ -366,4 +451,20 @@ nedryland_resource_and_reload_show() {
   fi
 
   nedryland_reload_show
+}
+
+nedryland() {
+  local subcommand="${1:-}"
+
+  case "$subcommand" in
+    edit)
+      code "$(dirname "$nedryland_current_directory")"
+      ;;
+    update)
+      NEDRYLAND_SKIP_STARTUP_GREETING=1 NEDRYLAND_SUPPRESS_UPDATE_BANNER=1 zsh "$(dirname "$nedryland_current_directory")/install.zsh"
+      ;;
+    *)
+      nedryland_resource_and_reload_show
+      ;;
+  esac
 }
