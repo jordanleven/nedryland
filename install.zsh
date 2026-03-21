@@ -32,6 +32,7 @@ install_git_config() {
   git config --global alias.shake "!sh $install_current_directory/$directory_git/$directory_git_scripts/shake.sh"
   git config --global alias.pushup "!sh $install_current_directory/$directory_git/$directory_git_scripts/pushup.sh"
   git config --global alias.rebaso "!sh $install_current_directory/$directory_git/$directory_git_scripts/rebaso.sh"
+  git config --global alias.remove-beta "!sh $install_current_directory/$directory_git/$directory_git_scripts/remove-beta.sh"
 
   # Set the commit editor to the foreground app
   git config --global core.editor "$install_current_directory/$directory_git/$directory_git_scripts/editor-from-foreground-app.sh"
