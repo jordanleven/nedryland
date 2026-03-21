@@ -4,6 +4,71 @@
 . "$(dirname "$0")/zshell/zshell.nedryland.zsh"
 
 install_current_directory=$(pwd)
+typeset -a install_summary
+
+record_install_summary() {
+  install_summary+=("$1")
+}
+
+print_install_summary() {
+  printf "\n\x1b[1;37mInstall summary\x1b[0m\n"
+
+  if [ ${#install_summary[@]} -eq 0 ]
+  then
+    printf "\x1b[38;2;160;160;160m- No changes were recorded.\x1b[0m\n"
+    return
+  fi
+
+  for summary_line in "${install_summary[@]}"
+  do
+    printf "%b\n" "$summary_line"
+  done
+}
+
+run_install_step() {
+  step_label=$1
+  shift
+
+  "$@"
+  step_status=$?
+
+  case $step_status in
+    0)
+      record_install_summary "\x1b[38;2;97;188;101m- Completed:\x1b[0m $step_label"
+      return 0;;
+    1)
+      record_install_summary "\x1b[38;2;210;80;80m- Skipped:\x1b[0m $step_label"
+      return 0;;
+    130)
+      record_install_summary "\x1b[1;38;2;255;63;63m- Aborted:\x1b[0m $step_label"
+      return 130;;
+    *)
+      record_install_summary "\x1b[1;38;2;255;63;63m- Failed:\x1b[0m $step_label"
+      return $step_status;;
+  esac
+}
+
+run_optional_install_step() {
+  step_label=$1
+  shift
+
+  prompt_user_for_update "$step_label"
+  prompt_status=$?
+
+  case $prompt_status in
+    0)
+      run_install_step "$step_label" "$@"
+      return $?;;
+    1)
+      record_install_summary "\x1b[38;2;210;80;80m- Skipped:\x1b[0m $step_label"
+      return 0;;
+    130)
+      record_install_summary "\x1b[1;38;2;255;63;63m- Aborted:\x1b[0m $step_label"
+      return 130;;
+    *)
+      return $prompt_status;;
+  esac
+}
 
 command_does_exist() {
   if type "$1" &> /dev/null
@@ -171,45 +236,126 @@ install_gh_cli() {
 
 prompt_user_for_update() {
   prompt=$1
+  selected_option="yes"
+  prompt_emoji="❓"
+  prompt_hint="\x1b[2;38;2;196;147;58mUse ← → to switch • Enter to confirm • Esc to abort\x1b[0m"
+  prompt_has_rendered=0
+
+  clear_prompt_block() {
+    printf "\033[3A\r\033[K\033[1B\r\033[K\033[1B\r\033[K\033[2A\r"
+  }
+
+  case "$prompt" in
+    *git\ config* )
+      prompt_emoji="⚙️";;
+    *git\ hooks* )
+      prompt_emoji="🪝";;
+    *Claude* )
+      prompt_emoji="🧠";;
+    *Codex* )
+      prompt_emoji="🤖";;
+  esac
+
   while true
   do
-    printf "\n\x1b[1;38;32;97;188;101mUpdate %s? \x1b[38;2;97;188;101m[y/n] \033[0m" "$prompt"
-    read reply
+    if [ "$selected_option" = "yes" ]
+    then
+      yes_option="\x1b[1;30;48;2;97;188;101m YES \x1b[0m"
+      no_option="\x1b[1;38;2;210;80;80m NO \x1b[0m"
+    else
+      yes_option="\x1b[1;38;2;97;188;101m YES \x1b[0m"
+      no_option="\x1b[1;30;48;2;210;80;80m NO \x1b[0m"
+    fi
+
+    if [ "$prompt_has_rendered" -eq 1 ]
+    then
+      clear_prompt_block
+    else
+      prompt_has_rendered=1
+    fi
+
+    printf "\r\033[K%b \x1b[1;37mUpdate %s?\x1b[0m\n\033[K  %b   %b\n\033[K  %b\n" "$prompt_emoji" "$prompt" "$yes_option" "$no_option" "$prompt_hint"
+
+    read -rsk1 reply
+
     case $reply in
-        [Yy]* )
-          return 0;;
-        [Nn]* )
-          printf "\x1b[3;38;32;97;188;101mSkipping %s update...\n\033[0m" "$prompt"
-          return 1;;
-        * )
-        printf "\n\x1b[1;38;2;255;63;63mPlease response with \"y\" or \"n\"\n\033[0m"
+      [Yy] )
+        clear_prompt_block
+        return 0;;
+      [Nn] )
+        clear_prompt_block
+        return 1;;
+      " " | "" | $'\n' | $'\r' )
+        clear_prompt_block
+        if [ "$selected_option" = "yes" ]
+        then
+          return 0
+        else
+          return 1
+        fi;;
+      $'\e' )
+        if read -rsk1 -t 0.01 next_key
+        then
+          if [ "$next_key" = "[" ]
+          then
+            read -rsk1 arrow_key
+            case $arrow_key in
+              C )
+                selected_option="no";;
+              D )
+                selected_option="yes";;
+            esac
+          fi
+        else
+          clear_prompt_block
+          return 130
+        fi;;
     esac
   done
 }
 
 nedryland_init() {
-  install_git_config
-  install_git_hooks
-  install_oh_my_zsh_plugins
-  install_custom_aliases
-  install_custom_go_path
-  install_nedryland_greeting
-  install_gh_cli
-  install_shared_skills
+  run_install_step "git config" install_git_config || return $?
+  run_install_step "git hooks" install_git_hooks || return $?
+  run_install_step "Oh My Zsh plugins" install_oh_my_zsh_plugins || return $?
+  run_install_step "custom aliases" install_custom_aliases || return $?
+  run_install_step "custom GOPATH" install_custom_go_path || return $?
+  run_install_step "Nedryland greeting" install_nedryland_greeting || return $?
+  run_install_step "GitHub CLI" install_gh_cli || return $?
+  run_install_step "shared skills" install_shared_skills || return $?
 }
 
 nedryland_update() {
-  prompt_user_for_update "git config" && install_git_config
-  prompt_user_for_update "git hooks" && install_git_hooks
-  prompt_user_for_update "Claude shared skills" && install_claude_skills
-  prompt_user_for_update "Codex skill symlinks" && sync_codex_skill_links
+  run_optional_install_step "git config" install_git_config || return $?
+  run_optional_install_step "git hooks" install_git_hooks || return $?
+  run_optional_install_step "Claude shared skills" install_claude_skills || return $?
+  run_optional_install_step "Codex skill symlinks" sync_codex_skill_links || return $?
 }
 
 # Check if we need to do an initial install of Nedryland
 if ! command_does_exist nedryland
 then
   nedryland_init
+  install_status=$?
 else
-  printf "\n\x1b[1;38;2;255;63;63mNedryland has already been installed. Running updates...\n\033[0m"
+  if [ "${NEDRYLAND_SUPPRESS_UPDATE_BANNER:-0}" != "1" ]
+  then
+    printf "\n\x1b[1;38;2;255;63;63mNedryland has already been installed. Running updates...\n\033[0m"
+  fi
   nedryland_update
+  install_status=$?
 fi
+
+if [ "$install_status" -eq 130 ]
+then
+  printf "\n\x1b[1;38;2;255;63;63mInstall aborted.\x1b[0m\n"
+elif [ "$install_status" -eq 0 ]
+then
+  printf "\n\x1b[1;38;2;97;188;101mInstall complete.\x1b[0m\n"
+else
+  printf "\n\x1b[1;38;2;255;63;63mInstall failed.\x1b[0m\n"
+fi
+
+print_install_summary
+
+exit "$install_status"
