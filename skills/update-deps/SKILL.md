@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 Update dependencies for the project in the current working directory based on open Dependabot pull requests. This skill has two separate tracks:
 
-- **Patch and minor updates** — cherry-picked onto a new dated branch in batches of 3, each ending up as its own commit so any single update can be reverted independently.
+- **Patch and minor updates** — if there are multiple PRs, cherry-picked onto a new dated branch in batches of 3, each ending up as its own commit so any single update can be reverted independently. If there is only a single patch/minor PR, check out the Dependabot branch directly (same as the major flow) — no new branch needed.
 - **Major version updates** — handled separately by checking out the existing Dependabot branch directly (no new branch). Major bumps are presented as a ranked plan and tackled one at a time at the user's direction.
 
 ## Steps
@@ -20,11 +20,16 @@ Update dependencies for the project in the current working directory based on op
      git fetch --prune
      git branch --merged <main-branch> | grep -v '^\* \|^  <main-branch>$' | xargs -r git branch -d
      ```
-   - Create and check out a new branch for this work:
+   - **Only if there are multiple patch/minor PRs:** create and check out a new branch for this work:
      ```
      git checkout -b chore--update-dependencies-<YYYY-MM-DD>
      ```
      where `<YYYY-MM-DD>` is today's date (e.g. `chore--update-dependencies-2026-02-28`).
+   - **If there is only 1 patch/minor PR (and no majors)**, skip creating a new branch — check out the existing Dependabot branch directly instead (same as the major version flow in step 7b):
+     ```
+     gh pr checkout <number>
+     nvm use
+     ```
 
 2. **Find open Dependabot PRs** using `gh pr list --author "app/dependabot" --state open --json number,title,headRefName`. If there are none, report that and stop.
 
@@ -80,10 +85,31 @@ Update dependencies for the project in the current working directory based on op
       git cherry-pick origin/<headRefName>
       ```
       After cherry-picking each PR, confirm the actual new version by reading the relevant entry in `package.json` — PR titles and branch names are frequently stale and may not reflect what was actually committed. Use the `package.json` value as ground truth when reporting what changed.
-      **Strip the scope from Dependabot commit messages.** Dependabot commits often use `chore(subject): ...` — always rewrite these to `chore: ...` by amending the commit immediately after cherry-picking:
+      **Rewrite the commit message to match project conventions.** Amend immediately after cherry-picking and verify every rule before finalising:
+      1. **No scope** — `chore(deps-dev): ...` → `chore: ...`
+      2. **Sentence case** — capitalise the first word only
+      3. **Imperative mood** — "Bump", "Update", not "Bumped", "Updated"
+      4. **No trailing period** on the subject line
+      5. **Count the subject line characters** — run `echo -n "subject" | wc -c`; do not estimate. If the count exceeds 50, shorten the package name before committing: drop the org prefix from scoped packages (`@vue/compiler-sfc` → `compiler-sfc`, `@playwright/test` → `playwright/test`) or abbreviate version strings. Re-count after every edit until the subject is ≤ 50.
+      6. **Body lines** (if any) must start with `-` and be ≤ 72 characters
       ```
-      git commit --amend -m "chore: <rest of message>"
+      git commit --amend -m "chore: <rewritten subject ≤ 50 chars>"
       ```
+      **Sync the lockfile into every commit.** After amending the commit message, always run:
+      ```
+      npm install --package-lock-only
+      git add package-lock.json
+      git commit --amend --no-edit
+      ```
+      This ensures the lockfile is never stale in any individual commit (CI checks each commit).
+      **Enforce commit message line length.** When writing or amending any commit message, the first line must be 50 characters or fewer, and all subsequent lines must be 72 characters or fewer.
+      **Sync the lockfile into every commit.** After amending the commit message, always run:
+      ```
+      npm install --package-lock-only
+      git add package-lock.json
+      git commit --amend --no-edit
+      ```
+      This ensures the lockfile is never stale in any individual commit (CI checks each commit).
       For each cherry-pick, if there are merge conflicts resolve them before continuing:
       - **`package.json` conflict** — resolve manually, keeping the new version from the Dependabot branch
       - **Lockfile conflict** (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`) — unstage and regenerate:
@@ -112,7 +138,7 @@ Update dependencies for the project in the current working directory based on op
 
    Apply each PR individually, running the full verification after each one:
 
-   a. Cherry-pick and resolve conflicts (same as fast path step a above, including stripping `chore(subject):` → `chore:` from the commit message).
+   a. Cherry-pick and resolve conflicts (same as fast path step a above, including the full commit message rewrite: strip scope, sentence case, imperative mood, no trailing period, count subject ≤ 50 chars).
 
    b. **Verify** (same clean install + full check as fast path step b above).
 
@@ -167,9 +193,29 @@ Update dependencies for the project in the current working directory based on op
       nvm use
       ```
       After checking out, read the relevant entry in `package.json` and use that as the actual version — PR bodies are frequently stale and may not reflect what's on the branch. Report the real version before proceeding.
-      **Strip the scope from the branch's commit message(s).** If any commits on the branch use `chore(subject): ...`, rewrite them to `chore: ...`. For the most recent commit this is just:
+      **Rewrite commit message(s) to match project conventions.** For each commit on the branch, verify and fix every rule:
+      1. **No scope** — `chore(deps-dev): ...` → `chore: ...`
+      2. **Sentence case** — capitalise the first word only
+      3. **Imperative mood** — "Bump", "Update", not "Bumped", "Updated"
+      4. **No trailing period** on the subject line
+      5. **Count the subject line characters** — run `echo -n "subject" | wc -c`; do not estimate. If the count exceeds 50, shorten the package name before committing: drop the org prefix from scoped packages (`@vue/compiler-sfc` → `compiler-sfc`, `@playwright/test` → `playwright/test`) or abbreviate version strings. Re-count after every edit until the subject is ≤ 50.
+      6. **Body lines** (if any) must start with `-` and be ≤ 72 characters
+      For the most recent commit:
       ```
-      git commit --amend -m "chore: <rest of message>"
+      git commit --amend -m "chore: <rewritten subject ≤ 50 chars>"
+      ```
+      **Sync the lockfile into the commit** after amending the message:
+      ```
+      npm install --package-lock-only
+      git add package-lock.json
+      git commit --amend --no-edit
+      ```
+      **Enforce commit message line length.** The first line must be 50 characters or fewer, and all subsequent lines must be 72 characters or fewer.
+      **Sync the lockfile into the commit** after amending the message:
+      ```
+      npm install --package-lock-only
+      git add package-lock.json
+      git commit --amend --no-edit
       ```
 
    c. **Verify** using the same process as the patch/minor one-at-a-time flow:
@@ -187,11 +233,11 @@ Update dependencies for the project in the current working directory based on op
 
 8. **Ask the user** if they would like to open a pull request for these changes.
 
-   - **Patch/minor branch** — use the `pr-create` skill. The PR title must be **"Dependency Updates"** (always, regardless of what was updated). The body should include:
+   - **Patch/minor branch (multiple PRs)** — use the `pr-create` skill. The PR title must be **"Dependency Updates"** (always, regardless of what was updated). The body should include:
      - The full list of dependency updates (package name, old version → new version, Dependabot PR reference)
      - Any other commits on the branch that are unrelated to dependency updates, listed separately so reviewers are aware of them
 
-   - **Major update (already on a Dependabot branch)** — do **not** use `pr-create`. The Dependabot PR already exists. Instead:
+   - **Single patch/minor PR or major update (already on a Dependabot branch)** — do **not** use `pr-create`. The Dependabot PR already exists. Instead:
      1. Push the branch: `git push origin HEAD`
      2. Update the existing PR title and body via the GitHub API:
         ```

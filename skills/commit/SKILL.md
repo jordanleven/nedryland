@@ -54,6 +54,8 @@ Good body (explains why):
 
 **Order commits so the build passes at every step.** If changes are being committed from unstaged files, sequence them so that checking out any individual commit leaves the project in a working, buildable state. Never commit a dependency before the thing it depends on.
 
+**When removing a dependency, update the consuming code first.** If a script is being modernized to drop an import (e.g., swapping `ramda` for native array methods), commit the script change before the `package.json` change that removes the dep. That way, the commit that removes the dependency never has code that still needs it — each commit is self-consistent.
+
 ## Steps
 
 1. Run `git status` and `git diff` to understand all pending changes
