@@ -64,5 +64,6 @@ Good body (explains why):
 4. For each commit:
    - Stage only the files relevant to that idea with `git add`
    - Write a message following the format above
+   - **Count the subject line characters before committing** — do not estimate; verify the count is ≤ 50
    - Commit with `git commit -m "<message>"`
 5. Repeat until all changes are committed
