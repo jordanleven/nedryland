@@ -2,6 +2,7 @@
 
 . "$(dirname "$0")/zshell.nedryland.zsh"
 . "$(dirname "$0")/zshell.temp-directory.zsh"
+. "$(dirname "$0")/zshell.force-refresh.zsh"
 
 alias nedryland="nedryland_resource_and_reload_show"
 alias nedryland_loaded="nedryland_loaded_show"
