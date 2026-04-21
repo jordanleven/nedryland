@@ -81,12 +81,12 @@ When a bug has been identified and a beta release exists (or needs to be referen
 
 When Jordan has replied and the reporter hasn't responded, the follow-up timeline is:
 
-- **3 days** since Jordan's last reply: send a short nudge.
+- **2 days** since Jordan's last reply: send a short nudge.
 - **5 days** since Jordan's last reply: send a closing message.
 
 Draft the appropriate message based on how long it's been:
 
-- **3 or more days but fewer than 5**: draft a short, friendly nudge:
+- **2 or more days but fewer than 5**: draft a short, friendly nudge:
 
   > Hey @{username}, just following up to see if you had a chance to try those steps. Happy to help if you run into anything!
 
@@ -94,9 +94,9 @@ Draft the appropriate message based on how long it's been:
 
   > Hey @{username}, just following up since I haven't heard back. I'll go ahead and close this out for now, but feel free to reach out again if you run into any other issues!
 
-**Resetting the clock:** If the reporter replies at any point, the 3-day and 5-day timers reset from Jordan's next reply after that.
+**Resetting the clock:** If the reporter replies at any point, the 2-day and 5-day timers reset from Jordan's next reply after that.
 
-**Setting reminders after any Jordan reply:** Whenever Jordan posts a reply and is now waiting on the reporter, automatically delete any existing reminders for the thread and create two new reminders without asking: one for the 3-day nudge and one for the 5-day close-out. Both are created from Jordan's reply date.
+**Setting reminders after any Jordan reply:** Whenever Jordan posts a reply and is now waiting on the reporter, automatically delete any existing reminders for the thread and create two new reminders without asking: one for the 2-day nudge and one for the 5-day close-out. Both are created from Jordan's reply date.
 
 After presenting the draft message, present a macOS Reminder summary confirming both reminders are set.
 
@@ -115,7 +115,7 @@ end tell'
 **Step 2 — Create both reminders** (use `body` for notes, not `notes` — that is the correct AppleScript property name):
 
 ```bash
-# Nudge reminder (3 days after Jordan's last reply)
+# Nudge reminder (2 days after Jordan's last reply)
 osascript -e '
 tell application "Reminders"
   make new reminder with properties {name:"Follow up on Force Refresh support request", due date:date "{nudge_date}", body:"{thread_url}"}
@@ -129,7 +129,7 @@ end tell'
 ```
 
 - `{thread_url}`: the full URL of the support thread.
-- `{nudge_date}`: 3 days after Jordan's most recent reply.
+- `{nudge_date}`: 2 days after Jordan's most recent reply.
 - `{close_date}`: 5 days after Jordan's most recent reply.
 - Format dates as `"April 23, 2026 6:00 PM"`. Use **6:00 PM** for weekdays (Mon–Fri), **2:00 PM** for weekends (Sat–Sun).
 - Confirm to the user once both reminders are created.
