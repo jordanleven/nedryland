@@ -1,9 +1,11 @@
 #!/bin/zsh
 
 . ~/.zshrc
-. "$(dirname "$0")/zshell/zshell.nedryland.zsh"
 
-install_current_directory=$(pwd)
+install_script_directory=${0:A:h}
+. "$install_script_directory/zshell/zshell.nedryland.zsh"
+
+install_current_directory=$install_script_directory
 typeset -a install_summary
 
 record_install_summary() {
@@ -113,6 +115,8 @@ install_git_config() {
 }
 
 install_git_hooks() {
+  mkdir -p "$HOME/.git_templates/hooks"
+
   # Copy the prepare-commit-msg to the global config
   cp "$install_current_directory/$directory_git/prepare-commit-msg" "$HOME/.git_templates/hooks/"
 }
@@ -179,10 +183,25 @@ install_nedryland_greeting() {
 install_claude_skills() {
   shared_skills_source="$install_current_directory/skills"
   claude_skills_target="$HOME/.claude/skills"
+  linked_claude_skills_source=""
 
   mkdir -p "$HOME/.claude"
 
-  if [ ! -e "$claude_skills_target" ]
+  if [ -L "$claude_skills_target" ] && [ ! -e "$claude_skills_target" ]
+  then
+    rm "$claude_skills_target"
+  fi
+
+  if [ -L "$claude_skills_target" ]
+  then
+    linked_claude_skills_source=$(readlink "$claude_skills_target")
+    if [ "$linked_claude_skills_source" != "$shared_skills_source" ]
+    then
+      rm "$claude_skills_target"
+    fi
+  fi
+
+  if [ ! -e "$claude_skills_target" ] && [ ! -L "$claude_skills_target" ]
   then
     ln -s "$shared_skills_source" "$claude_skills_target"
   fi
@@ -191,23 +210,37 @@ install_claude_skills() {
 sync_codex_skill_links() {
   shared_skills_source="$install_current_directory/skills"
   codex_skills_target="$HOME/.codex/skills"
+  typeset -a shared_skill_paths codex_skill_links
 
   mkdir -p "$codex_skills_target"
 
-  for skill_path in "$shared_skills_source"/*
+  shared_skill_paths=("$shared_skills_source"/*(N))
+
+  for skill_path in "${shared_skill_paths[@]}"
   do
     if [ -d "$skill_path" ]
     then
       skill_name=$(basename "$skill_path")
       codex_skill_link="$codex_skills_target/$skill_name"
-      if [ ! -e "$codex_skill_link" ]
+      if [ -L "$codex_skill_link" ]
+      then
+        linked_skill_path=$(readlink "$codex_skill_link")
+        if [ "$linked_skill_path" != "$skill_path" ]
+        then
+          rm "$codex_skill_link"
+        fi
+      fi
+
+      if [ ! -e "$codex_skill_link" ] && [ ! -L "$codex_skill_link" ]
       then
         ln -s "$skill_path" "$codex_skill_link"
       fi
     fi
   done
 
-  for codex_skill_link in "$codex_skills_target"/*
+  codex_skill_links=("$codex_skills_target"/*(N))
+
+  for codex_skill_link in "${codex_skill_links[@]}"
   do
     if [ -L "$codex_skill_link" ]
     then
