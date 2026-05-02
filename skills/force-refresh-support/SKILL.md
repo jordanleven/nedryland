@@ -13,7 +13,9 @@ For each thread, fetch its full content and determine its status:
 
 - **Needs a first reply**: Jordan hasn't responded yet. Proceed to diagnose and draft a reply (steps 3-5).
 - **Waiting on the reporter**: Jordan replied and the reporter hasn't responded. Note how long it's been since Jordan's last reply and ask the user if they'd like to send a reminder (see section 7).
-- **Looks resolved**: The reporter confirmed the issue is fixed or the conversation has concluded. Draft a closing message with a review request (see section 8).
+- **Looks resolved**: The reporter confirmed the issue is fixed, the conversation has concluded, or the root cause is outside Force Refresh's scope (e.g. a hosting or PHP configuration issue) and the cause has been explained. Draft a closing message with a review request (see section 8).
+
+**When resolved status is ambiguous**, ask Jordan before deciding — don't make that call independently.
 
 Present a summary of all open threads and their statuses before diving into any one of them. Then work through them one at a time, asking the user how to proceed for each.
 
