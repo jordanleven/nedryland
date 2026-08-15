@@ -73,6 +73,8 @@ Update dependencies for the project in the current working directory based on op
    - `go.mod` → go
    - `Gemfile` → bundler
 
+   **Also check for a changelog script:** look for a `changelog:new` entry in `package.json`'s `scripts`. Note whether it exists — this determines whether the changelog fragment step below applies for the rest of the run.
+
 5. **Process dependencies in batches of 3**, using a fast path with a one-at-a-time fallback:
 
    ### Fast path (batch of 3)
@@ -110,6 +112,11 @@ Update dependencies for the project in the current working directory based on op
       git commit --amend --no-edit
       ```
       This ensures the lockfile is never stale in any individual commit (CI checks each commit).
+      **If the project has a `changelog:new` script, generate a changelog fragment in its own commit.** Run it non-interactively, selecting the "Dependencies & security" kind so it doesn't prompt (e.g. for `changie`: `npm run changelog:new -- -k "Dependencies & security"`; if the underlying tool doesn't support a non-interactive kind flag, run it interactively and choose "Dependencies & security" when prompted). Commit only the resulting fragment file — never amend it into the dependency bump commit, so the fragment and its update stay independently revertable:
+      ```
+      git add .changes/unreleased/
+      git commit -m "docs: Release fragment"
+      ```
       For each cherry-pick, if there are merge conflicts resolve them before continuing:
       - **`package.json` conflict** — resolve manually, keeping the new version from the Dependabot branch
       - **Lockfile conflict** (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`) — unstage and regenerate:
@@ -216,6 +223,11 @@ Update dependencies for the project in the current working directory based on op
       npm install --package-lock-only
       git add package-lock.json
       git commit --amend --no-edit
+      ```
+      **If the project has a `changelog:new` script, generate a changelog fragment in its own commit** (same as the patch/minor flow): run it non-interactively selecting "Dependencies & security" (e.g. `npm run changelog:new -- -k "Dependencies & security"` for `changie`), then commit only the fragment file separately:
+      ```
+      git add .changes/unreleased/
+      git commit -m "docs: Release fragment"
       ```
 
    c. **Verify** using the same process as the patch/minor one-at-a-time flow:
