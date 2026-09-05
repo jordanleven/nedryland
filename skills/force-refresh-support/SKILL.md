@@ -98,43 +98,16 @@ Draft the appropriate message based on how long it's been:
 
 **Resetting the clock:** If the reporter replies at any point, the 2-day and 5-day timers reset from Jordan's next reply after that.
 
-**Setting reminders after any Jordan reply:** Whenever Jordan posts a reply and is now waiting on the reporter, automatically delete any existing reminders for the thread and create two new reminders without asking: one for the 2-day nudge and one for the 5-day close-out. Both are created from Jordan's reply date.
-
-After presenting the draft message, present a macOS Reminder summary confirming both reminders are set.
-
-**Step 1 — Delete any existing reminders for this thread** (match by title; scanning all reminders by `body` is unreliable and causes AppleScript connection errors):
+**Setting reminders after any Jordan reply:** Whenever Jordan posts a reply and is now waiting on the reporter, automatically run the bundled script without asking — it deletes any existing reminders for these threads and creates both new ones (2-day nudge, 5-day close-out), computing dates and weekday/weekend times itself:
 
 ```bash
-osascript -e '
-tell application "Reminders"
-  set matches to (every reminder whose name is "Follow up on Force Refresh support request" or name is "Close out Force Refresh support request")
-  repeat with r in matches
-    delete r
-  end repeat
-end tell'
-```
-
-**Step 2 — Create both reminders** (use `body` for notes, not `notes` — that is the correct AppleScript property name):
-
-```bash
-# Nudge reminder (2 days after Jordan's last reply)
-osascript -e '
-tell application "Reminders"
-  make new reminder with properties {name:"Follow up on Force Refresh support request", due date:date "{nudge_date}", body:"{thread_url}"}
-end tell'
-
-# Close-out reminder (5 days after Jordan's last reply)
-osascript -e '
-tell application "Reminders"
-  make new reminder with properties {name:"Close out Force Refresh support request", due date:date "{close_date}", body:"{thread_url}"}
-end tell'
+./skills/force-refresh-support/set-reminders.sh "{thread_url}" "{last_reply_date}"
 ```
 
 - `{thread_url}`: the full URL of the support thread.
-- `{nudge_date}`: 2 days after Jordan's most recent reply.
-- `{close_date}`: 5 days after Jordan's most recent reply.
-- Format dates as `"April 23, 2026 6:00 PM"`. Use **6:00 PM** for weekdays (Mon–Fri), **2:00 PM** for weekends (Sat–Sun).
-- Confirm to the user once both reminders are created.
+- `{last_reply_date}`: Jordan's most recent reply date, as `YYYY-MM-DD`.
+
+Print the script's output (it reports the nudge and close-out dates it set) as confirmation that both reminders are set.
 
 **When to delete and recreate:** Each time the skill runs and a thread is still in "Waiting on the reporter" status, always delete any existing reminders for that thread and recreate both based on Jordan's current most-recent reply date. This keeps the dates accurate if Jordan sent a follow-up since the last run.
 
