@@ -245,11 +245,20 @@ Update dependencies for the project in the current working directory based on op
 
    f. **Do not comment on or close the Dependabot PR.** Leave it untouched until merged.
 
-8. **Ask the user** if they would like to open a pull request for these changes.
+8. **Patch/minor branch (multiple PRs) only:** ask if the user would like to collapse the branch's commits into a single `chore: Update dependencies` commit. If yes, run:
+   ```
+   ./skills/update-deps/collapse-into-one.sh <main-branch>
+   ```
+   This squashes everything on the branch (each dependency commit and the release fragment commit) down to one commit with that exact message — matching the `curate-commits` "curate for main" convention. If no, leave the branch's commits as-is.
+
+   (Not applicable to the single-PR or major-update flows — those only ever produce one dependency commit plus one fragment commit on an existing Dependabot branch, so there's nothing meaningful to collapse.)
+
+9. **Ask the user** if they would like to open a pull request for these changes.
 
    - **Patch/minor branch (multiple PRs)** — use the `pr-create` skill. The PR title must be **"Dependency Updates"** (always, regardless of what was updated). The body should include:
      - The full list of dependency updates (package name, old version → new version, Dependabot PR reference)
      - Any other commits on the branch that are unrelated to dependency updates, listed separately so reviewers are aware of them
+     - **If the commits were collapsed in step 8**, the body must still list each individual dependency update (package, old → new version, PR reference) even though it's now a single commit — the PR body is the record of what changed, independent of commit structure.
 
    - **Single patch/minor PR or major update (already on a Dependabot branch)** — do **not** use `pr-create`. The Dependabot PR already exists. Instead:
      1. Push the branch: `git push origin HEAD`
@@ -262,4 +271,4 @@ Update dependencies for the project in the current working directory based on op
         Note: `gh pr edit` may exit non-zero due to a Projects (classic) deprecation warning even on success — use `gh api` directly to avoid that.
      3. **Strip the scope from the PR title** — if the existing title matches the pattern `chore(<scope>): ...` (e.g. `chore(deps): bump foo from 1 to 2`), rewrite it to `chore: ...`. Only apply this rewrite when the title actually has a scope; leave all other titles untouched.
 
-9. **Summarize** what was updated and, if a PR was opened, link to it.
+10. **Summarize** what was updated and, if a PR was opened, link to it.
