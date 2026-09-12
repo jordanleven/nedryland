@@ -27,7 +27,6 @@ Update dependencies for the project in the current working directory based on op
      gh pr checkout <number>
      source ~/.nvm/nvm.sh && nvm use
      ```
-   - Note: `prepare.sh` handles `git fetch --all`, `git checkout <main> && git pull`, `source ~/.nvm/nvm.sh && nvm use`, `git fetch --prune`, and deleting merged branches — all in one approval.
 
 2. **Find open Dependabot PRs** using `gh pr list --author "app/dependabot" --state open --json number,title,headRefName`. If there are none, report that and stop.
 

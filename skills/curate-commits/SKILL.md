@@ -29,8 +29,10 @@ The order commits were *made* is rarely the order they should be *reviewed*. Lik
 #### 1. Survey the current branch
 
 ```
-./skills/curate-commits/survey.sh main
+./skills/curate-commits/survey.sh
 ```
+
+The script auto-detects the main branch and prints it on the first line — note it for use in subsequent commands (e.g. `git rebase -i <main-branch>`).
 
 Review all commits on the branch relative to main. Identify:
 - Commits that cover multiple ideas and should be split
@@ -64,7 +66,7 @@ The plan must list every commit currently on the branch and the proposed action 
 Once the user approves the plan, run:
 
 ```
-git rebase -i main
+git rebase -i <main-branch>
 ```
 
 Apply the approved operations. When resolving merge conflicts during rebase, ask: *"How would I have made this change had the preceding commits already been in place?"*
@@ -151,8 +153,10 @@ The bar here is higher than for PR curation. If multiple commits all belong to t
 #### 1. Survey the branch
 
 ```
-./skills/curate-commits/survey.sh main
+./skills/curate-commits/survey.sh
 ```
+
+The script auto-detects the main branch and prints it on the first line — note it for use in subsequent commands (e.g. `git rebase -i <main-branch>`).
 
 Group every commit by idea. Common groupings:
 - All commits for a single feature or fix → one commit
@@ -183,7 +187,7 @@ The plan must list every commit currently on the branch, grouped by the proposed
 Once the user approves, run:
 
 ```
-git rebase -i main
+git rebase -i <main-branch>
 ```
 
 Apply the approved operations. When resolving merge conflicts during rebase, ask: *"How would I have made this change had the preceding commits already been in place?"*
