@@ -29,8 +29,7 @@ The order commits were *made* is rarely the order they should be *reviewed*. Lik
 #### 1. Survey the current branch
 
 ```
-git log main..HEAD --oneline
-git diff main...HEAD --stat
+./skills/curate-commits/survey.sh main
 ```
 
 Review all commits on the branch relative to main. Identify:
@@ -152,8 +151,7 @@ The bar here is higher than for PR curation. If multiple commits all belong to t
 #### 1. Survey the branch
 
 ```
-git log main..HEAD --oneline
-git diff main...HEAD --stat
+./skills/curate-commits/survey.sh main
 ```
 
 Group every commit by idea. Common groupings:

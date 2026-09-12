@@ -12,24 +12,22 @@ Update dependencies for the project in the current working directory based on op
 ## Steps
 
 1. **Prepare the local repository:**
-   - Fetch all remotes: `git fetch --all`
-   - Pull the latest main branch: `git checkout <main-branch> && git pull` — check `git remote show origin` or recent commits to confirm whether it's `master` or `main`
-   - Switch to the correct Node version: `source ~/.nvm/nvm.sh && nvm use` — background bash commands run in a fresh shell and do not inherit nvm shell state, so nvm must be sourced explicitly every time, not just once
-   - Prune remote-tracking references and delete local branches already merged into main:
+   - Check `git remote show origin` or recent commits to confirm whether the main branch is `master` or `main`.
+   - **Only if there are multiple patch/minor PRs**, run:
      ```
-     git fetch --prune
-     git branch --merged <main-branch> | grep -v '^\* \|^  <main-branch>$' | xargs -r git branch -d
-     ```
-   - **Only if there are multiple patch/minor PRs:** create and check out a new branch for this work:
-     ```
-     git checkout -b chore--update-dependencies-<YYYY-MM-DD>
+     ./skills/update-deps/prepare.sh <main-branch> --new-branch chore--update-dependencies-<YYYY-MM-DD>
      ```
      where `<YYYY-MM-DD>` is today's date (e.g. `chore--update-dependencies-2026-02-28`).
-   - **If there is only 1 patch/minor PR (and no majors)**, skip creating a new branch — check out the existing Dependabot branch directly instead (same as the major version flow in step 7b):
+   - **If there is only 1 patch/minor PR (and no majors)**, run without `--new-branch` — the script will still fetch, pull, prune, and clean up merged branches, but won't create a new branch:
+     ```
+     ./skills/update-deps/prepare.sh <main-branch>
+     ```
+     Then check out the existing Dependabot branch directly (same as the major version flow in step 7b):
      ```
      gh pr checkout <number>
-     nvm use
+     source ~/.nvm/nvm.sh && nvm use
      ```
+   - Note: `prepare.sh` handles `git fetch --all`, `git checkout <main> && git pull`, `source ~/.nvm/nvm.sh && nvm use`, `git fetch --prune`, and deleting merged branches — all in one approval.
 
 2. **Find open Dependabot PRs** using `gh pr list --author "app/dependabot" --state open --json number,title,headRefName`. If there are none, report that and stop.
 
@@ -83,8 +81,7 @@ Update dependencies for the project in the current working directory based on op
 
    a. **Cherry-pick all PRs in the batch**, one after the other without testing between them:
       ```
-      git fetch origin <headRefName>
-      git cherry-pick origin/<headRefName>
+      ./skills/update-deps/cherry-pick-pr.sh <headRefName>
       ```
       After cherry-picking each PR, confirm the actual new version by reading the relevant entry in `package.json` — PR titles and branch names are frequently stale and may not reflect what was actually committed. Use the `package.json` value as ground truth when reporting what changed.
       **Rewrite the commit message to match project conventions.** Amend immediately after cherry-picking and verify every rule before finalising:
@@ -99,19 +96,10 @@ Update dependencies for the project in the current working directory based on op
       ```
       **Sync the lockfile into every commit.** After amending the commit message, always run:
       ```
-      npm install --package-lock-only
-      git add package-lock.json
-      git commit --amend --no-edit
+      ./skills/update-deps/sync-lockfile.sh
       ```
       This ensures the lockfile is never stale in any individual commit (CI checks each commit).
       **Enforce commit message line length.** When writing or amending any commit message, the first line must be 50 characters or fewer, and all subsequent lines must be 72 characters or fewer.
-      **Sync the lockfile into every commit.** After amending the commit message, always run:
-      ```
-      npm install --package-lock-only
-      git add package-lock.json
-      git commit --amend --no-edit
-      ```
-      This ensures the lockfile is never stale in any individual commit (CI checks each commit).
       For each cherry-pick, if there are merge conflicts resolve them before continuing:
       - **`package.json` conflict** — resolve manually, keeping the new version from the Dependabot branch
       - **Lockfile conflict** (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`) — unstage and regenerate:
@@ -215,17 +203,9 @@ Update dependencies for the project in the current working directory based on op
       ```
       **Sync the lockfile into the commit** after amending the message:
       ```
-      npm install --package-lock-only
-      git add package-lock.json
-      git commit --amend --no-edit
+      ./skills/update-deps/sync-lockfile.sh
       ```
       **Enforce commit message line length.** The first line must be 50 characters or fewer, and all subsequent lines must be 72 characters or fewer.
-      **Sync the lockfile into the commit** after amending the message:
-      ```
-      npm install --package-lock-only
-      git add package-lock.json
-      git commit --amend --no-edit
-      ```
       **If the project has a `changelog:new` script, generate a changelog fragment in its own commit** (same as the patch/minor flow): run it non-interactively selecting "Dependencies & security" (e.g. `npm run changelog:new -- -k "Dependencies & security"` for `changie`), then commit only the fragment file separately:
       ```
       git add .changes/unreleased/
