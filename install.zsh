@@ -267,6 +267,80 @@ install_gh_cli() {
   fi
 }
 
+install_cmux_theme() {
+  cmux_config="$HOME/.config/cmux/cmux.json"
+  cmux_theme_source="$install_current_directory/themes/Nedryland.cmux.json"
+
+  if [ ! -f "$cmux_config" ]
+  then
+    return 1
+  fi
+
+  # Only touch the block while it's still the commented-out default template.
+  # If it's already uncommented, it's either already applied or the user has
+  # customized it themselves, so leave it alone.
+  if ! grep -Fq '//   "workspaceColors" : {' "$cmux_config"
+  then
+    return 1
+  fi
+
+  # Strip the outer braces from the theme file so its contents can be
+  # spliced directly into cmux.json's commented "workspaceColors" block.
+  workspace_colors_block=$(sed '1d;$d' "$cmux_theme_source")
+
+  CMUX_WORKSPACE_COLORS="$workspace_colors_block" perl -0777 -pi -e '
+    my $block = $ENV{CMUX_WORKSPACE_COLORS};
+    s/  \/\/   "workspaceColors" : \{.*?\/\/   \},/$block,/s
+  ' "$cmux_config"
+}
+
+install_ghostty_theme() {
+  ghostty_theme_source="$install_current_directory/themes/Nedryland.ghostty"
+  ghostty_themes_directory="$HOME/.config/ghostty/themes"
+  ghostty_config="$HOME/.config/ghostty/config"
+
+  mkdir -p "$ghostty_themes_directory"
+  cp "$ghostty_theme_source" "$ghostty_themes_directory/Nedryland"
+
+  if [ ! -f "$ghostty_config" ]
+  then
+    mkdir -p "$HOME/.config/ghostty"
+    {
+      printf "theme = Nedryland\n"
+      printf "cursor-style = block\n"
+      printf "font-family = Fira Code\n"
+      printf "font-size = 15\n"
+      printf "bold-is-bright = true\n"
+    } > "$ghostty_config"
+    return 0
+  fi
+
+  if ! grep -Fq "theme = Nedryland" "$ghostty_config"
+  then
+    printf "theme = Nedryland\n" >> "$ghostty_config"
+  fi
+
+  if ! grep -Fq "cursor-style" "$ghostty_config"
+  then
+    printf "cursor-style = block\n" >> "$ghostty_config"
+  fi
+
+  if ! grep -Fq "font-family" "$ghostty_config"
+  then
+    printf "font-family = Fira Code\n" >> "$ghostty_config"
+  fi
+
+  if ! grep -Fq "font-size" "$ghostty_config"
+  then
+    printf "font-size = 15\n" >> "$ghostty_config"
+  fi
+
+  if ! grep -Fq "bold-is-bright" "$ghostty_config"
+  then
+    printf "bold-is-bright = true\n" >> "$ghostty_config"
+  fi
+}
+
 prompt_user_for_update() {
   prompt=$1
   selected_option="yes"
@@ -356,6 +430,8 @@ nedryland_init() {
   run_install_step "Nedryland greeting" install_nedryland_greeting || return $?
   run_install_step "GitHub CLI" install_gh_cli || return $?
   run_install_step "shared skills" install_shared_skills || return $?
+  run_install_step "cmux theme" install_cmux_theme || return $?
+  run_install_step "Ghostty theme" install_ghostty_theme || return $?
 }
 
 nedryland_update() {
@@ -363,6 +439,8 @@ nedryland_update() {
   run_optional_install_step "git hooks" install_git_hooks || return $?
   run_optional_install_step "Claude shared skills" install_claude_skills || return $?
   run_optional_install_step "Codex skill symlinks" sync_codex_skill_links || return $?
+  run_optional_install_step "cmux theme" install_cmux_theme || return $?
+  run_optional_install_step "Ghostty theme" install_ghostty_theme || return $?
 }
 
 # Check if we need to do an initial install of Nedryland
