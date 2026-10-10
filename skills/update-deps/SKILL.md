@@ -72,6 +72,18 @@ Update dependencies for the project in the current working directory based on op
 
    **Also check for a changelog script:** look for a `changelog:new` entry in `package.json`'s `scripts`. Note whether it exists — this determines whether the changelog fragment step below applies for the rest of the run.
 
+   **A fragment is only warranted when the update changes what ships.** A fragment is a promise that there is something to release, so dev-only updates (linters, test runners, bundlers, type packages, CI scripts) must not produce one — otherwise fragments pile up and a release goes out with nothing in it. To decide, once the updates are applied, run:
+   ```
+   ./skills/update-deps/shipped-deps-changed.sh <main-branch>
+   ```
+   This lists every non-dev package whose resolved version in `package-lock.json` differs from the main branch (npm only — for other package managers, compare the runtime dependency sections of the manifest and lockfile by hand). Treat the output as candidates, not a verdict:
+   - **Empty output** → nothing shipped changed. **Skip the fragment.**
+   - **Only build-time transitives** → some packages are marked non-dev purely because a runtime dependency declares them, but never reach the built artifact (e.g. `postcss`, `nanoid`, `source-map-js`, `@jridgewell/sourcemap-codec` via `vue` → `@vue/compiler-sfc`). If every listed package is one of these, **skip the fragment.**
+   - **Anything the application actually imports or bundles** (a direct `dependencies` entry or a transitive of one that ends up in the build) → **create the fragment.**
+   - A dev dependency update that required changes to application source, or that fixes a vulnerability in shipped output, also warrants a fragment.
+
+   If unsure whether a package reaches the build, create the fragment — a spurious patch release is cheaper than a shipped change with no release note. Whenever the fragment is skipped, say so in the final summary along with the reason.
+
 5. **Process dependencies in batches of 3**, using a fast path with a one-at-a-time fallback:
 
    ### Fast path (batch of 3)
@@ -153,7 +165,7 @@ Update dependencies for the project in the current working directory based on op
    ```
    Then run the build, tests, and linter in parallel one final time. If this fails, investigate before opening a PR.
 
-   **If this is the multi-PR dated branch (batches from step 5) and the project has a `changelog:new` script** (per step 4), generate **one** changelog fragment for the whole branch — not one per dependency. Run it non-interactively selecting the "Dependencies & security" kind (e.g. for `changie`: `npm run changelog:new -- -k "Dependencies & security"`; if the underlying tool doesn't support a non-interactive kind flag, run it interactively and choose "Dependencies & security" when prompted), then commit only the fragment file:
+   **If this is the multi-PR dated branch (batches from step 5), the project has a `changelog:new` script, and the update changes what ships** (both per step 4), generate **one** changelog fragment for the whole branch — not one per dependency. Run it non-interactively selecting the "Dependencies & security" kind (e.g. for `changie`: `npm run changelog:new -- -k "Dependencies & security"`; if the underlying tool doesn't support a non-interactive kind flag, run it interactively and choose "Dependencies & security" when prompted), then commit only the fragment file:
    ```
    git add .changes/unreleased/
    git commit -m "docs: Release fragment"
@@ -205,7 +217,7 @@ Update dependencies for the project in the current working directory based on op
       ./skills/update-deps/sync-lockfile.sh
       ```
       **Enforce commit message line length.** The first line must be 50 characters or fewer, and all subsequent lines must be 72 characters or fewer.
-      **If the project has a `changelog:new` script, generate a changelog fragment in its own commit** (same as the patch/minor flow): run it non-interactively selecting "Dependencies & security" (e.g. `npm run changelog:new -- -k "Dependencies & security"` for `changie`), then commit only the fragment file separately:
+      **If the project has a `changelog:new` script and the update changes what ships (per step 4), generate a changelog fragment in its own commit** (same as the patch/minor flow): run it non-interactively selecting "Dependencies & security" (e.g. `npm run changelog:new -- -k "Dependencies & security"` for `changie`), then commit only the fragment file separately:
       ```
       git add .changes/unreleased/
       git commit -m "docs: Release fragment"
@@ -255,10 +267,10 @@ Update dependencies for the project in the current working directory based on op
       ./skills/update-deps/collapse-into-one.sh <main-branch>
       git push --force-with-lease
       ```
-      This squashes everything on the branch (each dependency commit and the release fragment commit) down to one commit with that exact message — matching the `curate-commits` "curate for main" convention. If no, leave the branch's commits as-is.
+      This squashes everything on the branch (each dependency commit and the release fragment commit, if there is one) down to one commit with that exact message — matching the `curate-commits` "curate for main" convention. If no, leave the branch's commits as-is.
 
    If the user declined to open a PR in step 8, skip this step entirely — do not collapse.
 
-   (Not applicable to the single-PR or major-update flows — those only ever produce one dependency commit plus one fragment commit on an existing Dependabot branch, so there's nothing meaningful to collapse.)
+   (Not applicable to the single-PR or major-update flows — those only ever produce one dependency commit plus at most one fragment commit on an existing Dependabot branch, so there's nothing meaningful to collapse.)
 
 10. **Summarize** what was updated and, if a PR was opened, link to it.
