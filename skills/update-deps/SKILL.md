@@ -12,23 +12,20 @@ Update dependencies for the project in the current working directory based on op
 ## Steps
 
 1. **Prepare the local repository:**
-   - Fetch all remotes: `git fetch --all`
-   - Pull the latest main branch: `git checkout <main-branch> && git pull` — check `git remote show origin` or recent commits to confirm whether it's `master` or `main`
-   - Switch to the correct Node version: `source ~/.nvm/nvm.sh && nvm use` — background bash commands run in a fresh shell and do not inherit nvm shell state, so nvm must be sourced explicitly every time, not just once
-   - Prune remote-tracking references and delete local branches already merged into main:
+   - Check `git remote show origin` or recent commits to confirm whether the main branch is `master` or `main`.
+   - **Only if there are multiple patch/minor PRs**, run:
      ```
-     git fetch --prune
-     git branch --merged <main-branch> | grep -v '^\* \|^  <main-branch>$' | xargs -r git branch -d
-     ```
-   - **Only if there are multiple patch/minor PRs:** create and check out a new branch for this work:
-     ```
-     git checkout -b chore--update-dependencies-<YYYY-MM-DD>
+     ./skills/update-deps/prepare.sh <main-branch> --new-branch chore--update-dependencies-<YYYY-MM-DD>
      ```
      where `<YYYY-MM-DD>` is today's date (e.g. `chore--update-dependencies-2026-02-28`).
-   - **If there is only 1 patch/minor PR (and no majors)**, skip creating a new branch — check out the existing Dependabot branch directly instead (same as the major version flow in step 7b):
+   - **If there is only 1 patch/minor PR (and no majors)**, run without `--new-branch` — the script will still fetch, pull, prune, and clean up merged branches, but won't create a new branch:
+     ```
+     ./skills/update-deps/prepare.sh <main-branch>
+     ```
+     Then check out the existing Dependabot branch directly (same as the major version flow in step 7b):
      ```
      gh pr checkout <number>
-     nvm use
+     source ~/.nvm/nvm.sh && nvm use
      ```
 
 2. **Find open Dependabot PRs** using `gh pr list --author "app/dependabot" --state open --json number,title,headRefName`. If there are none, report that and stop.
@@ -73,6 +70,20 @@ Update dependencies for the project in the current working directory based on op
    - `go.mod` → go
    - `Gemfile` → bundler
 
+   **Also check for a changelog script:** look for a `changelog:new` entry in `package.json`'s `scripts`. Note whether it exists — this determines whether the changelog fragment step below applies for the rest of the run.
+
+   **A fragment is only warranted when the update changes what ships.** A fragment is a promise that there is something to release, so dev-only updates (linters, test runners, bundlers, type packages, CI scripts) must not produce one — otherwise fragments pile up and a release goes out with nothing in it. To decide, once the updates are applied, run:
+   ```
+   ./skills/update-deps/shipped-deps-changed.sh <main-branch>
+   ```
+   This lists every non-dev package whose resolved version in `package-lock.json` differs from the main branch (npm only — for other package managers, compare the runtime dependency sections of the manifest and lockfile by hand). Treat the output as candidates, not a verdict:
+   - **Empty output** → nothing shipped changed. **Skip the fragment.**
+   - **Only build-time transitives** → some packages are marked non-dev purely because a runtime dependency declares them, but never reach the built artifact (e.g. `postcss`, `nanoid`, `source-map-js`, `@jridgewell/sourcemap-codec` via `vue` → `@vue/compiler-sfc`). If every listed package is one of these, **skip the fragment.**
+   - **Anything the application actually imports or bundles** (a direct `dependencies` entry or a transitive of one that ends up in the build) → **create the fragment.**
+   - A dev dependency update that required changes to application source, or that fixes a vulnerability in shipped output, also warrants a fragment.
+
+   If unsure whether a package reaches the build, create the fragment — a spurious patch release is cheaper than a shipped change with no release note. Whenever the fragment is skipped, say so in the final summary along with the reason.
+
 5. **Process dependencies in batches of 3**, using a fast path with a one-at-a-time fallback:
 
    ### Fast path (batch of 3)
@@ -81,8 +92,7 @@ Update dependencies for the project in the current working directory based on op
 
    a. **Cherry-pick all PRs in the batch**, one after the other without testing between them:
       ```
-      git fetch origin <headRefName>
-      git cherry-pick origin/<headRefName>
+      ./skills/update-deps/cherry-pick-pr.sh <headRefName>
       ```
       After cherry-picking each PR, confirm the actual new version by reading the relevant entry in `package.json` — PR titles and branch names are frequently stale and may not reflect what was actually committed. Use the `package.json` value as ground truth when reporting what changed.
       **Rewrite the commit message to match project conventions.** Amend immediately after cherry-picking and verify every rule before finalising:
@@ -97,19 +107,10 @@ Update dependencies for the project in the current working directory based on op
       ```
       **Sync the lockfile into every commit.** After amending the commit message, always run:
       ```
-      npm install --package-lock-only
-      git add package-lock.json
-      git commit --amend --no-edit
+      ./skills/update-deps/sync-lockfile.sh
       ```
       This ensures the lockfile is never stale in any individual commit (CI checks each commit).
       **Enforce commit message line length.** When writing or amending any commit message, the first line must be 50 characters or fewer, and all subsequent lines must be 72 characters or fewer.
-      **Sync the lockfile into every commit.** After amending the commit message, always run:
-      ```
-      npm install --package-lock-only
-      git add package-lock.json
-      git commit --amend --no-edit
-      ```
-      This ensures the lockfile is never stale in any individual commit (CI checks each commit).
       For each cherry-pick, if there are merge conflicts resolve them before continuing:
       - **`package.json` conflict** — resolve manually, keeping the new version from the Dependabot branch
       - **Lockfile conflict** (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`) — unstage and regenerate:
@@ -164,6 +165,13 @@ Update dependencies for the project in the current working directory based on op
    ```
    Then run the build, tests, and linter in parallel one final time. If this fails, investigate before opening a PR.
 
+   **If this is the multi-PR dated branch (batches from step 5), the project has a `changelog:new` script, and the update changes what ships** (both per step 4), generate **one** changelog fragment for the whole branch — not one per dependency. Run it non-interactively selecting the "Dependencies & security" kind (e.g. for `changie`: `npm run changelog:new -- -k "Dependencies & security"`; if the underlying tool doesn't support a non-interactive kind flag, run it interactively and choose "Dependencies & security" when prompted), then commit only the fragment file:
+   ```
+   git add .changes/unreleased/
+   git commit -m "docs: Release fragment"
+   ```
+   (Skip this here for the single-PR or major-update flows — those already produce their own single fragment in step 7b.)
+
 7. **Major version updates** (separate track — no new branch):
 
    Major bumps are not cherry-picked onto the dated branch. Instead, work directly on the existing Dependabot branch so the PR is already there and no branch cleanup is needed.
@@ -206,16 +214,13 @@ Update dependencies for the project in the current working directory based on op
       ```
       **Sync the lockfile into the commit** after amending the message:
       ```
-      npm install --package-lock-only
-      git add package-lock.json
-      git commit --amend --no-edit
+      ./skills/update-deps/sync-lockfile.sh
       ```
       **Enforce commit message line length.** The first line must be 50 characters or fewer, and all subsequent lines must be 72 characters or fewer.
-      **Sync the lockfile into the commit** after amending the message:
+      **If the project has a `changelog:new` script and the update changes what ships (per step 4), generate a changelog fragment in its own commit** (same as the patch/minor flow): run it non-interactively selecting "Dependencies & security" (e.g. `npm run changelog:new -- -k "Dependencies & security"` for `changie`), then commit only the fragment file separately:
       ```
-      npm install --package-lock-only
-      git add package-lock.json
-      git commit --amend --no-edit
+      git add .changes/unreleased/
+      git commit -m "docs: Release fragment"
       ```
 
    c. **Verify** using the same process as the patch/minor one-at-a-time flow:
@@ -236,6 +241,8 @@ Update dependencies for the project in the current working directory based on op
    - **Patch/minor branch (multiple PRs)** — use the `pr-create` skill. The PR title must be **"Dependency Updates"** (always, regardless of what was updated). The body should include:
      - The full list of dependency updates (package name, old version → new version, Dependabot PR reference)
      - Any other commits on the branch that are unrelated to dependency updates, listed separately so reviewers are aware of them
+     - Open the PR with the branch's individual commits intact — **do not collapse before opening the PR**. Collapsing only happens in step 9, after checks pass.
+     - The body must list each individual dependency update (package, old → new version, PR reference) regardless of commit structure — it remains the record of what changed after the commits are collapsed in step 9.
 
    - **Single patch/minor PR or major update (already on a Dependabot branch)** — do **not** use `pr-create`. The Dependabot PR already exists. Instead:
      1. Push the branch: `git push origin HEAD`
@@ -248,4 +255,22 @@ Update dependencies for the project in the current working directory based on op
         Note: `gh pr edit` may exit non-zero due to a Projects (classic) deprecation warning even on success — use `gh api` directly to avoid that.
      3. **Strip the scope from the PR title** — if the existing title matches the pattern `chore(<scope>): ...` (e.g. `chore(deps): bump foo from 1 to 2`), rewrite it to `chore: ...`. Only apply this rewrite when the title actually has a scope; leave all other titles untouched.
 
-9. **Summarize** what was updated and, if a PR was opened, link to it.
+9. **Patch/minor branch (multiple PRs) only — collapse after checks pass:** never collapse the branch's commits before the PR is open and its checks are green. The individual commits are what make a CI failure easy to isolate and revert, so they must survive until CI has confirmed the full set.
+
+   a. Once the PR from step 8 is open, wait for its checks to finish:
+      ```
+      gh pr checks <number> --watch
+      ```
+   b. **If any check fails:** do **not** collapse. Report the failing check and investigate, using the per-dependency commits to isolate the cause.
+   c. **If all checks pass:** ask if the user would like to collapse the branch's commits into a single `chore: Update dependencies` commit. If yes, run:
+      ```
+      ./skills/update-deps/collapse-into-one.sh <main-branch>
+      git push --force-with-lease
+      ```
+      This squashes everything on the branch (each dependency commit and the release fragment commit, if there is one) down to one commit with that exact message — matching the `curate-commits` "curate for main" convention. If no, leave the branch's commits as-is.
+
+   If the user declined to open a PR in step 8, skip this step entirely — do not collapse.
+
+   (Not applicable to the single-PR or major-update flows — those only ever produce one dependency commit plus at most one fragment commit on an existing Dependabot branch, so there's nothing meaningful to collapse.)
+
+10. **Summarize** what was updated and, if a PR was opened, link to it.

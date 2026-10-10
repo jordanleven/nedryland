@@ -23,7 +23,7 @@ Present a summary of all open threads and their statuses before diving into any 
 
 ## 3. Research the codebase
 
-For all threads, navigate to the Force Refresh codebase by running `z force-refresh` in the terminal before drafting any reply. This is required any time you reference UI navigation paths, feature behavior, or plugin settings — do not assume locations from memory. Look at:
+For all threads, work in the Force Refresh codebase at `~/Developer/Personal/force-refresh` before drafting any reply. Use the path directly rather than `z force-refresh`, which prints an animated shell banner when run from a subshell. This is required any time you reference UI navigation paths, feature behavior, or plugin settings — do not assume locations from memory. Look at:
 - The specific feature or behavior being reported.
 - Any recent changes in git history related to the area (`git log --oneline` is fine).
 - Known limitations or edge cases in the code.
@@ -45,20 +45,35 @@ Write a reply that matches Jordan's actual support tone:
 - Think out loud briefly when uncertain: "Hmm, I'm wondering if..." is fine.
 - Never over-explain. If the answer is one sentence, keep it one sentence.
 - Do not use em dashes or en dashes. Use plain punctuation or reword.
+- Do not use arrows (→) for navigation paths. Write them out in words, e.g. "the Force Refresh page in the Tools menu" instead of "Tools → Force Refresh".
+- Answer the literal question they asked first, then explain. Work out what they think the feature does, since a question is often built on a mistaken model of it (e.g. assuming the refresh interval reloads the page every time).
 - Explains the cause or answers their question.
 - Provides concrete debugging steps or a workaround if applicable.
 - Mentions if a fix is planned or already released.
 
 **Deciding how to respond:**
 - If the thread is a question about how a feature works, answer it directly based on your knowledge of the codebase.
-- If the user is describing unusual or unexpected behavior, ask for screenshots: one of what they're seeing, and one from the Force Refresh Troubleshooting screen (Tools → Force Refresh → click the "Troubleshooting" button). That screen shows the PHP and WordPress versions Force Refresh is actually detecting.
+- If the user is describing unusual or unexpected behavior, ask for screenshots: one of what they're seeing, and one from the Force Refresh Troubleshooting screen (go to the Force Refresh page in the Tools menu and click the "Troubleshooting" button). That screen shows the PHP and WordPress versions Force Refresh is actually detecting.
 - If you're unsure how to respond, stop and ask Jordan before drafting a reply.
+
+**Common questions:** Verify these against the codebase each time, since behavior may change.
+- **Stale content for visitors:** Force Refresh only reloads browsers that already have the site open, and only after a refresh is triggered ("Force Refresh Site" or a scheduled refresh). Publishing content doesn't trigger one. Stale content on a fresh visit comes from caching (a caching plugin, the host, or a CDN), which Force Refresh doesn't handle.
+- **Refresh interval, bandwidth, or server load:** The interval is only how often open tabs send a small version check. The page reloads only when a refresh has been triggered, so a longer interval is fine for most sites. For server load concerns, point them to the "Update method" setting set to "Static file" (off by default, and unavailable when a CDN is detected).
 
 **Audience:** Assume non-technical users who may have minor technical expertise. Keep instructions simple and step-by-step.
 
 **Beta builds:** Jordan provides these manually. Only reference a beta if Jordan supplies one. Never proactively suggest one.
 
 Present the draft reply to the user for review before they post it. **Always include the direct URL to the thread** so the user can click through to post the reply. Present the reply text in a plain code block (no markdown formatting inside), and automatically copy it to the clipboard using `pbcopy`.
+
+## 5a. Posting the reply
+
+WordPress.org forums have no API for posting replies. If Jordan asks you to post it, use Claude in Chrome:
+
+1. Open the thread in a new tab and confirm Jordan is logged in (the toolbar shows "Howdy, jordanleven" and a reply form is present). If not, ask Jordan to log in. Never enter credentials yourself. The 1Password for Claude integration only works in the Claude desktop app, not Claude Code.
+2. Fill the reply textarea with the approved text.
+3. Submit only once Jordan has explicitly approved posting.
+4. Confirm the reply appears in the thread, then set reminders immediately (see section 7).
 
 ## 6. If a beta fix is available
 
@@ -71,7 +86,7 @@ When a bug has been identified and a beta release exists (or needs to be referen
 
 > Hey @{username}, the first beta build for this issue is available here: **[{release_title}]({download_url})**
 >
-> You may notice it's marked as a beta release, but since we're working through this together it's safe to install. Download the `.zip` file and upload it via **Plugins → Add New → Upload Plugin** in your WordPress admin. WordPress will detect that Force Refresh is already installed and prompt you to replace it.
+> You may notice it's marked as a beta release, but since we're working through this together it's safe to install. Download the `.zip` file and upload it in your WordPress admin by going to **Plugins**, clicking **Add New**, then **Upload Plugin**. WordPress will detect that Force Refresh is already installed and prompt you to replace it.
 >
 > As a quick note, every release I publish, including betas, is signed with my GPG key. You can verify this by viewing the release on GitHub and hovering over the green checkmark next to the commit. If you'd like to see exactly what's changed in this build, you can [view the diff here]({compare_url}).
 >
@@ -98,43 +113,16 @@ Draft the appropriate message based on how long it's been:
 
 **Resetting the clock:** If the reporter replies at any point, the 2-day and 5-day timers reset from Jordan's next reply after that.
 
-**Setting reminders after any Jordan reply:** Whenever Jordan posts a reply and is now waiting on the reporter, automatically delete any existing reminders for the thread and create two new reminders without asking: one for the 2-day nudge and one for the 5-day close-out. Both are created from Jordan's reply date.
-
-After presenting the draft message, present a macOS Reminder summary confirming both reminders are set.
-
-**Step 1 — Delete any existing reminders for this thread** (match by title; scanning all reminders by `body` is unreliable and causes AppleScript connection errors):
+**Setting reminders after any Jordan reply:** Whenever Jordan posts a reply and is now waiting on the reporter, automatically run the bundled script without asking — it deletes any existing reminders for these threads and creates both new ones (2-day nudge, 5-day close-out), computing dates and weekday/weekend times itself:
 
 ```bash
-osascript -e '
-tell application "Reminders"
-  set matches to (every reminder whose name is "Follow up on Force Refresh support request" or name is "Close out Force Refresh support request")
-  repeat with r in matches
-    delete r
-  end repeat
-end tell'
-```
-
-**Step 2 — Create both reminders** (use `body` for notes, not `notes` — that is the correct AppleScript property name):
-
-```bash
-# Nudge reminder (2 days after Jordan's last reply)
-osascript -e '
-tell application "Reminders"
-  make new reminder with properties {name:"Follow up on Force Refresh support request", due date:date "{nudge_date}", body:"{thread_url}"}
-end tell'
-
-# Close-out reminder (5 days after Jordan's last reply)
-osascript -e '
-tell application "Reminders"
-  make new reminder with properties {name:"Close out Force Refresh support request", due date:date "{close_date}", body:"{thread_url}"}
-end tell'
+~/.claude/skills/force-refresh-support/set-reminders.sh "{thread_url}" "{last_reply_date}"
 ```
 
 - `{thread_url}`: the full URL of the support thread.
-- `{nudge_date}`: 2 days after Jordan's most recent reply.
-- `{close_date}`: 5 days after Jordan's most recent reply.
-- Format dates as `"April 23, 2026 6:00 PM"`. Use **6:00 PM** for weekdays (Mon–Fri), **2:00 PM** for weekends (Sat–Sun).
-- Confirm to the user once both reminders are created.
+- `{last_reply_date}`: Jordan's most recent reply date, as `YYYY-MM-DD`.
+
+Print the script's output (it reports the nudge and close-out dates it set) as confirmation that both reminders are set.
 
 **When to delete and recreate:** Each time the skill runs and a thread is still in "Waiting on the reporter" status, always delete any existing reminders for that thread and recreate both based on Jordan's current most-recent reply date. This keeps the dates accurate if Jordan sent a follow-up since the last run.
 
@@ -142,6 +130,6 @@ end tell'
 
 If the thread looks resolved, draft a closing message that includes a review request. The ask should feel natural and low-pressure, not transactional. Include a brief rationale for why reviews matter (they help other users discover and trust the plugin, and they help the developer continue maintaining it as a free tool). Example closing:
 
-**Never use em dashes or en dashes in replies. Use plain punctuation instead (commas, periods, or reword the sentence).**
+**Never use em dashes, en dashes, or arrows in replies. Use plain punctuation instead (commas, periods, or reword the sentence).**
 
 > If you're enjoying Force Refresh, I'd really appreciate it if you took a moment to [leave a review on the WordPress plugin directory](https://wordpress.org/support/plugin/force-refresh/reviews/#new-post). Reviews help other users find the plugin and go a long way in supporting its continued development. It's free to use and every bit helps. Thanks!

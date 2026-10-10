@@ -1,7 +1,6 @@
 ---
 name: pr-create
 description: Open a pull request for the current branch using the repo's PR template
-disable-model-invocation: true
 ---
 
 Open a pull request for the current branch.
